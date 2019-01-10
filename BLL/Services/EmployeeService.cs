@@ -75,15 +75,16 @@ namespace BLL.Services
             );
             var result = Mapper.Map<UserVacationRequestDTO, UserVacationRequest>(userVacationRequestDTO);
 
-            List<bool> checkOverlaps = CheckDublicate(result);
-
-            var daysForVacation=CheckVacationPolicies(result);
-
-            if (!checkOverlaps.Contains(true) && daysForVacation!=null)
+            if (userVacationRequestDTO.StartDate < userVacationRequestDTO.EndDate)
             {
-                result.Payment = daysForVacation.Payments;
-                _userVacationRequestRepository.Create(result);
-                _userVacationRequestRepository.Save();
+                List<bool> checkOverlaps = CheckDublicate(result);
+                var daysForVacation = CheckVacationPolicies(result);
+                if (!checkOverlaps.Contains(true) && daysForVacation != null)
+                {
+                    result.Payment = daysForVacation.Payments;
+                    _userVacationRequestRepository.Create(result);
+                    _userVacationRequestRepository.Save();
+                }
             }
         }
 
