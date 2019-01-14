@@ -36,34 +36,7 @@ namespace BLL.Services
             _vacationPolicyRepository = vacationPolicyRepository;
             _companyHolidayRepository = companyHolidayRepository;
         }
-        public void CreateEmployee(User user)
-        {           
-            user.Password= GetRandomString(6);
-            _userRepository.Create(user);
-            addManagerRole(user);
-            _userRepository.Save();
-        }
 
-        internal string GetRandomString(int stringLength)
-        {
-            StringBuilder sb = new StringBuilder();
-            int numGuidsToConcat = (((stringLength - 1) / 32) + 1);
-            for (int i = 1; i <= numGuidsToConcat; i++)
-            {
-                sb.Append(Guid.NewGuid().ToString("N"));
-            }
-
-            return sb.ToString(0, stringLength);
-        }
-
-        private void addManagerRole(User user)
-        {
-            Role role = _roleRepository.GetById(1);
-            UserRole userRole = new UserRole();
-            userRole.Role = role;
-            userRole.User = user;
-            _userRoleRepository.Create(userRole);
-        }
 
         public void CreateVacationRequest(UserVacationRequestDTO userVacationRequestDTO)
         {
@@ -124,32 +97,25 @@ namespace BLL.Services
 
             if (allvacations.Count != 0) {
                 //count prev days without sat and sun
-                int starting;
-                int ending;
                 foreach (var vacation in allvacations)
                 {
-                    starting = vacation.StartDate.DayOfYear;
-                    ending = vacation.EndDate.DayOfYear;
                     for (DateTime date = vacation.StartDate; date <= vacation.EndDate; date = date.AddDays(1))
                         if (date.DayOfWeek.ToString() != "Saturday" && date.DayOfWeek.ToString() != "Sunday")
                         {
                             allDatesPrev.Add(date);
                         }
                 }
-                //count prev days without compny holidays
-                foreach (var checkHoliday in allHolidays)
-                {
-                    var item = allDatesPrev.SingleOrDefault(x => x.DayOfYear == checkHoliday.Date.DayOfYear);
-                    if (item != null)
-                    {
-                        allDatesPrev.Remove(item);
-                    }
-                }
-            }         
-            
-            //get vacation policy for category
-            int workingYears = DateTime.Now.Year - newrequest.User.DateRecruitment.Year;
-            List<VacationPolicy> currentVacationPolicy=_vacationPolicyRepository.FindWithTypes(newrequest).Where(x => x.WorkingYear >= workingYears).ToList().OrderBy(x => x.WorkingYear).Take(2).ToList();
+                //count prev days without company holidays
+                allDatesPrev= GetListDaysWithoutCompanyHolidays(allDatesPrev);
+                //foreach (var checkHoliday in allHolidays)
+                //{
+                //    var item = allDatesPrev.SingleOrDefault(x => x.DayOfYear == checkHoliday.Date.DayOfYear);
+                //    if (item != null)
+                //    {
+                //        allDatesPrev.Remove(item);
+                //    }
+                //}
+            }                     
 
             //count days of current request
             List<DateTime> allDatesForCurrentRequest = new List<DateTime>();
@@ -161,14 +127,18 @@ namespace BLL.Services
                 }
             }
             //count days of current request without company holiday
-            foreach (var checkHoliday in allHolidays)
-            {
-                var item = allDatesForCurrentRequest.SingleOrDefault(x => x.DayOfYear == checkHoliday.Date.DayOfYear);
-                if (item != null)
-                {
-                    allDatesForCurrentRequest.Remove(item);
-                }
-            }
+            allDatesForCurrentRequest= GetListDaysWithoutCompanyHolidays(allDatesForCurrentRequest);
+            //foreach (var checkHoliday in allHolidays)
+            //{
+            //    var item = allDatesForCurrentRequest.SingleOrDefault(x => x.DayOfYear == checkHoliday.Date.DayOfYear);
+            //    if (item != null)
+            //    {
+            //        allDatesForCurrentRequest.Remove(item);
+            //    }
+            //}
+
+            //get vacation policy for category        
+            List<VacationPolicy> currentVacationPolicy = _vacationPolicyRepository.FindCurrentVacationPolicy(newrequest);
             int commonCountOfday = currentVacationPolicy[0].Count + currentVacationPolicy[0].Count;
 
             //it check if is dates yet
@@ -176,7 +146,6 @@ namespace BLL.Services
             int countAllDatesPrev = allDatesPrev.Count;
             if (commonCountOfday>= countAllDatesForCurrentRequest + countAllDatesPrev)
             {
-                //PROBLEM
                 VacationPolicy PolicyWithPay = currentVacationPolicy.Find(x => x.Payments == x.Count);
                 int remainderPayDays = PolicyWithPay.Count - (countAllDatesForCurrentRequest + countAllDatesPrev);
 
@@ -194,6 +163,21 @@ namespace BLL.Services
                 }
             }
             return null;
+        }
+
+        private List<DateTime> GetListDaysWithoutCompanyHolidays(List<DateTime> allDateTimes)
+        {
+            var allHolidays = _companyHolidayRepository.FindByCondition(x => x.Date.Year == DateTime.Now.Year);
+            List<DateTime> result= new List<DateTime>();
+            foreach (var checkHoliday in allHolidays)
+            {
+                var item = allDateTimes.SingleOrDefault(x => x.DayOfYear == checkHoliday.Date.DayOfYear);
+                if (item != null)
+                {
+                    allDateTimes.Remove(item);
+                }
+            }
+            return allDateTimes;
         }
 
     }

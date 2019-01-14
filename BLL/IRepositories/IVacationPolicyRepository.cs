@@ -8,6 +8,8 @@ namespace BLL.IRepositories
     public interface IVacationPolicyRepository : IGenericRepository<VacationPolicy>
     {
         IEnumerable<VacationPolicy> GetAllVacationPoliciesWithTypes();
-        IEnumerable<VacationPolicy> FindWithTypes(UserVacationRequest vacationtype);
+        List<VacationPolicy> FindCurrentVacationPolicy(UserVacationRequest userVacationRequest);
+
+        VacationPolicy FindForDelete(int years, string vacationType, int payments);
     }
 }

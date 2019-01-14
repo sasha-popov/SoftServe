@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using BLL.IRepositories;
 using BLL.Models;
@@ -16,9 +17,15 @@ namespace DAL.Repositories
             return RepositoryContext.VacationPolicies.Include(x => x.VacationType);
         }
 
-       public IEnumerable<VacationPolicy> FindWithTypes(UserVacationRequest userVacationRequest)
+       public List<VacationPolicy> FindCurrentVacationPolicy(UserVacationRequest userVacationRequest)
         {
-            return RepositoryContext.VacationPolicies.Include(x => x.VacationType).Where(x => x.VacationType.Id == userVacationRequest.VacationType.Id);
+            int workingYears = DateTime.Now.Year - userVacationRequest.User.DateRecruitment.Year;
+            return RepositoryContext.VacationPolicies.Include(x => x.VacationType).Where(x => x.VacationType.Id == userVacationRequest.VacationType.Id).Where(x => x.WorkingYear >= workingYears).ToList().OrderBy(x => x.WorkingYear).Take(2).ToList(); ;
+        }
+
+        public VacationPolicy FindForDelete(int years, string vacationType, int payments)
+        {
+            return RepositoryContext.VacationPolicies.Include(x => x.VacationType).Where(x => x.WorkingYear == years && x.VacationType.Name == vacationType && x.Payments == payments).First();
         }
 
     }

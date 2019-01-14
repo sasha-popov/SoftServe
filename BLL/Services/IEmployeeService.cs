@@ -8,7 +8,6 @@ namespace BLL.Services
 {
    public interface IEmployeeService
     {
-        void CreateEmployee(User user);
         void CreateVacationRequest(UserVacationRequestDTO userVacationRequestDTO);
         List<UserVacationRequestDTO> ShowUserVacationRequest(int id);
     }

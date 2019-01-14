@@ -5,8 +5,8 @@ using BLL.Models;
 
 namespace BLL.Services
 {
-   public interface IAccountService
+    public interface ICompanyHolidayService
     {
-        void CreateEmployee(User user);
+        void AddHoliday(CompanyHoliday newHoliday);
     }
 }
